@@ -20,16 +20,18 @@
 		simulate(data, svg)
 	})
 
-	let node_elements = null;
 	function simulate(data, svg)
 	{
 		const width = parseInt(svg.attr("viewBox").split(' ')[2])
 		const height = parseInt(svg.attr("viewBox").split(' ')[3])
 		const color = d3.scaleOrdinal(d3.schemeCategory10);
 
+		// Use a map for nodes for now. data struct conversion indexes by author id often
 		nodes = new Map();
 		links = [];
 		console.log(data);
+
+		// Construct nodes and links
 		data.forEach( line => {
 			authors = line["Author(s) ID"].split(';');
 			// Remove empty last element
@@ -43,11 +45,15 @@
 
 				// Generate links, without repeats
 				authors.forEach( s => {
+					// Sort to make searching for repeats easier
 					let author_pair = [a, s].sort();
 					const source = author_pair[0];
 					const target = author_pair[1];
+
 					link_exists = false;
+
 					links.some( l => {
+						// Increment link strength if a repeat
 						if (l.source == source && l.target == target) {
 							l.strength += 1;
 							link_exists = true;
@@ -60,6 +66,7 @@
 					}
 				})
 
+				// If there are any listed affiliations, figure out the country each other is associated with
 				if (affiliations) {
 					affiliations.some( aff_list => {
 						aff_list_split = aff_list.split(", ")
@@ -74,9 +81,12 @@
 				}
 			})
 		})
+
+		// Translate nodes from dict to array so ForceSimulate works
 		let node_arr = []
 		nodes.forEach( (n, index) => {
 			node_arr.push({"name": n.name, "country": n.country});
+			// Update the references in links from author id indexing to positional indexing
 			links.forEach( l => {
 				if (l.source == index) {
 					l.source = node_arr.length - 1;
@@ -89,7 +99,8 @@
 		console.log(node_arr)
 		console.log(links)
 
-		node_elements = svg.append("g")
+		// Generate svg elements for each node and link
+		const node_elements = svg.append("g")
 	        .attr('transform', `translate(${width / 2},${height / 2})`)
 	        .selectAll(".circle")
 	        .data(node_arr)
@@ -104,9 +115,10 @@
         	.data(links)
         	.enter()
         	.append("line")
-        	.style("stroke-width", d => d.strength)
-			.style("stroke-opacity", 0.25);
+        	.style("stroke-width", d => d.strength*1.5)
+			.style("stroke-opacity", d => d.strength*0.10);
 
+		// Run the simulation and modify those svg elements
 		const ForceSimulation = d3.forceSimulation(node_arr)
     		.force("collide", d3.forceCollide().radius(15))
     		.force("x", d3.forceX())
@@ -114,8 +126,8 @@
     		.force("charge", d3.forceManyBody())
     		.force("link", d3.forceLink(links)
     		    .id(d=>d.index)
-    		    .distance(d=>d.strength*.1)
-    		    .strength(d=>d.strength)
+    		    .distance(d=>d.strength)
+    		    .strength(d=>d.strength * .1)
     		)
 
     		.on("tick", ticked);
