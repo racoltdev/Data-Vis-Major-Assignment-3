@@ -27,14 +27,64 @@
 		const height = parseInt(svg.attr("viewBox").split(' ')[3])
 		const color = d3.scaleOrdinal(d3.schemeCategory10);
 
+		nodes = new Map();
+		links = [];
+		console.log(data);
+		data.forEach( line => {
+			authors = line["Author(s) ID"].split(';');
+			// Remove empty last element
+			authors.pop();
+			affiliations = line["Authors with affiliations"].split(";");
+			authors.forEach( (a, index) => {
+				// Create dictionary entry for author
+				nodes.set(a, {
+					"name": line.Authors.split(", ")[index],
+					"country": line["Authors with affiliations"].split(", ")[-1]})
+
+				// Generate links, without repeats
+				authors.forEach( s => {
+					let author_pair = [a, s].sort();
+					const source = author_pair[0];
+					const target = author_pair[1];
+					link_exists = false;
+					links.some( l => {
+						if (l.source == source && l.target == target) {
+							l.strength += 1;
+							link_exists = true;
+							return true;
+						}
+						return false;
+					})
+					if (!link_exists) {
+						links.push({"source": author_pair[0], "target": author_pair[1], "strength": 1});
+					}
+				})
+
+				if (affiliations) {
+					affiliations.some( aff_list => {
+						aff_list_split = aff_list.split(", ")
+						return aff_list_split.some( aff => {
+							if (nodes.get(a).name.includes(aff)) {
+								nodes.get(a).country = aff_list_split[aff_list_split.length - 1]
+								return true;
+							}
+							return false;
+						})
+					})
+				}
+			})
+		})
+		console.log(nodes)
+		console.log(links)
+
 		node_elements = svg.append("g")
 	        .attr('transform', `translate(${width / 2},${height / 2})`)
 	        .selectAll(".circle")
-	        .data(data)
+	        .data(nodes)
 	        .enter()
 	        .append("circle")
 	        .attr("r", 5)
-	        .attr("fill", d=>color(d.group))
+	        .attr("fill", d=>color(d.country))
 
 		const ForceSimulation = d3.forceSimulation(data.nodes)
     		.force("collide", d3.forceCollide().radius(15))
@@ -42,7 +92,7 @@
     		.force("y", d3.forceY())
     		.force("charge", d3.forceManyBody())
     		//.force("link",d3.forceLink(data.links)) // we add links data to this layout
-    		.force("link",d3.forceLink(data.links)
+    		.force("link",d3.forceLink(links)
     		    .id(d=>d.index)
     		    .distance(d=>d.value)
     		    .strength(d=>d.value*.1)
