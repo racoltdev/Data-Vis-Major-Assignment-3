@@ -74,39 +74,64 @@
 				}
 			})
 		})
-		console.log(nodes)
+		let node_arr = []
+		nodes.forEach( (n, index) => {
+			node_arr.push({"name": n.name, "country": n.country});
+			links.forEach( l => {
+				if (l.source == index) {
+					l.source = node_arr.length - 1;
+				}
+				if (l.target == index) {
+					l.target = node_arr.length - 1;
+				}
+			})
+		})
+		console.log(node_arr)
 		console.log(links)
 
 		node_elements = svg.append("g")
 	        .attr('transform', `translate(${width / 2},${height / 2})`)
 	        .selectAll(".circle")
-	        .data(nodes)
+	        .data(node_arr)
 	        .enter()
 	        .append("circle")
 	        .attr("r", 5)
 	        .attr("fill", d=>color(d.country))
 
-		const ForceSimulation = d3.forceSimulation(data.nodes)
+		const link_elements = svg.append("g")
+        	.attr('transform',`translate(${width/2},${height/2})`)
+        	.selectAll(".line")
+        	.data(links)
+        	.enter()
+        	.append("line")
+        	.style("stroke-width", d => d.strength);
+
+		const ForceSimulation = d3.forceSimulation(node_arr)
     		.force("collide", d3.forceCollide().radius(15))
     		.force("x", d3.forceX())
     		.force("y", d3.forceY())
     		.force("charge", d3.forceManyBody())
-    		//.force("link",d3.forceLink(data.links)) // we add links data to this layout
-    		.force("link",d3.forceLink(links)
+    		.force("link", d3.forceLink(links)
     		    .id(d=>d.index)
-    		    .distance(d=>d.value)
-    		    .strength(d=>d.value*.1)
+    		    .distance(d=>d.strength*.1)
+    		    .strength(d=>d.strength)
     		)
 
     		.on("tick", ticked);
+
+    		function ticked()
+    		{
+				node_elements
+    				.attr("cx", d=> d.x)
+    		    	.attr("cy", d=> d.y)
+				link_elements
+    		        .attr("x1",d=>d.source.x)
+    		        .attr("x2",d=>d.target.x)
+    		        .attr("y1",d=>d.source.y)
+    		        .attr("y2",d=>d.target.y)
+    		}
 	}
 
-    function ticked()
-    {
-		node_elements
-    		.attr("cx", d=> d.x)
-        	.attr("cy", d=> d.y)
-    }
 	</script>
 </body>
 </html>
