@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+	<meta charset="UTF-8">
+	<title>Major Assignment 3</title>
+	<script src="https://d3js.org/d3.v7.min.js"></script>
+	<style>
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<svg width="80vw" height="80vh" viewBox="0 0 1200 1000">
+		</svg>
+	</div>
+
+	<script>
+	d3.csv("./data_scopus.csv").then( (data) => {
+		let svg = d3.select('svg')
+		simulate(data, svg)
+	})
+
+	let node_elements = null;
+	function simulate(data, svg)
+	{
+		const width = parseInt(svg.attr("viewBox").split(' ')[2])
+		const height = parseInt(svg.attr("viewBox").split(' ')[3])
+		const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+		node_elements = svg.append("g")
+	        .attr('transform', `translate(${width / 2},${height / 2})`)
+	        .selectAll(".circle")
+	        .data(data)
+	        .enter()
+	        .append("circle")
+	        .attr("r", 5)
+	        .attr("fill", d=>color(d.group))
+
+		const ForceSimulation = d3.forceSimulation(data.nodes)
+    		.force("collide", d3.forceCollide().radius(15))
+    		.force("x", d3.forceX())
+    		.force("y", d3.forceY())
+    		.force("charge", d3.forceManyBody())
+    		//.force("link",d3.forceLink(data.links)) // we add links data to this layout
+    		.force("link",d3.forceLink(data.links)
+    		    .id(d=>d.index)
+    		    .distance(d=>d.value)
+    		    .strength(d=>d.value*.1)
+    		)
+
+    		.on("tick", ticked);
+	}
+
+    function ticked()
+    {
+		node_elements
+    		.attr("cx", d=> d.x)
+        	.attr("cy", d=> d.y)
+    }
+	</script>
+</body>
+</html>
