@@ -104,7 +104,8 @@
         	.data(links)
         	.enter()
         	.append("line")
-        	.style("stroke-width", d => d.strength);
+        	.style("stroke-width", d => d.strength)
+			.style("stroke-opacity", 0.25);
 
 		const ForceSimulation = d3.forceSimulation(node_arr)
     		.force("collide", d3.forceCollide().radius(15))
@@ -129,6 +130,7 @@
     		        .attr("x2",d=>d.target.x)
     		        .attr("y1",d=>d.source.y)
     		        .attr("y2",d=>d.target.y)
+					.attr("stroke", "#ababab")
     		}
 	}
 
