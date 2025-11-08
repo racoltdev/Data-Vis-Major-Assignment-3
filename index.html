@@ -29,6 +29,7 @@
 		// Use a map for nodes for now. data struct conversion indexes by author id often
 		nodes = new Map();
 		links = [];
+		countries = new Map();
 		console.log(data);
 
 		// Construct nodes and links
@@ -69,10 +70,17 @@
 				// If there are any listed affiliations, figure out the country each other is associated with
 				if (affiliations) {
 					affiliations.some( aff_list => {
-						aff_list_split = aff_list.split(", ")
+						aff_list_split = aff_list.split(", ");
 						return aff_list_split.some( aff => {
 							if (nodes.get(a).name.includes(aff)) {
-								nodes.get(a).country = aff_list_split[aff_list_split.length - 1]
+								let country = aff_list_split[aff_list_split.length - 1];
+								nodes.get(a).country = country;
+								if (countries.has(country)) {
+									countries.set(country, countries.get(country) + 1);
+								}
+								else {
+									countries.set(country, 1);
+								}
 								return true;
 							}
 							return false;
@@ -81,6 +89,13 @@
 				}
 			})
 		})
+
+		// Produce list of top 10 most common country affiliations
+		const sorted_countries = new Map(
+			[...countries.entries()]
+			.toSorted((x, y) => y[1] - x[1])
+			.slice(0, 10));
+		console.log(sorted_countries);
 
 		// Translate nodes from dict to array so ForceSimulate works
 		let node_arr = []
@@ -107,7 +122,8 @@
 	        .enter()
 	        .append("circle")
 	        .attr("r", 5)
-	        .attr("fill", d=>color(d.country))
+			// Only color the 10 most common countries
+	        .attr("fill", d=>country_to_color(d.country))
 
 		const link_elements = svg.append("g")
         	.attr('transform',`translate(${width/2},${height/2})`)
@@ -132,18 +148,27 @@
 
     		.on("tick", ticked);
 
-    		function ticked()
-    		{
-				node_elements
-    				.attr("cx", d=> d.x)
-    		    	.attr("cy", d=> d.y)
-				link_elements
-    		        .attr("x1",d=>d.source.x)
-    		        .attr("x2",d=>d.target.x)
-    		        .attr("y1",d=>d.source.y)
-    		        .attr("y2",d=>d.target.y)
-					.attr("stroke", "#ababab")
-    		}
+    	function ticked()
+    	{
+			node_elements
+    			.attr("cx", d=> d.x)
+    	    	.attr("cy", d=> d.y)
+			link_elements
+    	        .attr("x1",d=>d.source.x)
+    	        .attr("x2",d=>d.target.x)
+    	        .attr("y1",d=>d.source.y)
+    	        .attr("y2",d=>d.target.y)
+				.attr("stroke", "#ababab")
+    	}
+
+		function country_to_color(country) {
+			if (countries.has(country)) {
+				return color(country);
+			}
+			else {
+				return "#a9a9a9"
+			}
+		}
 	}
 
 	</script>
