@@ -10,7 +10,7 @@
 
 <body>
 	<div class="container">
-		<svg width="80vw" height="80vh" viewBox="0 0 1200 1000">
+		<svg width="80vw" height="80vh" viewBox="0 0 1000 1500">
 		</svg>
 	</div>
 
@@ -26,6 +26,65 @@
 		const height = parseInt(svg.attr("viewBox").split(' ')[3])
 		const color = d3.scaleOrdinal(d3.schemeCategory10);
 
+		const [node_arr, links, sorted_countries] = preprocess(data);
+
+		// Generate svg elements for each node and link
+		const node_elements = svg.append("g")
+	        .attr('transform', `translate(${width / 2},${height / 2})`)
+	        .selectAll(".circle")
+	        .data(node_arr)
+	        .enter()
+	        .append("circle")
+	        .attr("r", 5)
+			// Only color the 10 most common countries
+	        .attr("fill", d=>country_to_color(d.country))
+
+		const link_elements = svg.append("g")
+        	.attr('transform',`translate(${width/2},${height/2})`)
+        	.selectAll(".line")
+        	.data(links)
+        	.enter()
+        	.append("line")
+        	.style("stroke-width", d => d.strength*1.5)
+			.style("stroke-opacity", d => d.strength*0.10);
+
+		// Run the simulation and modify those svg elements
+		const ForceSimulation = d3.forceSimulation(node_arr)
+    		.force("collide", d3.forceCollide().radius(15))
+    		.force("x", d3.forceX())
+    		.force("y", d3.forceY())
+    		.force("charge", d3.forceManyBody())
+    		.force("link", d3.forceLink(links)
+    		    .id(d=>d.index)
+    		    .distance(d=>d.strength)
+    		    .strength(d=>d.strength * .1)
+    		)
+    		.on("tick", ticked);
+
+    	function ticked()
+    	{
+			node_elements
+    			.attr("cx", d=> d.x)
+    	    	.attr("cy", d=> d.y)
+			link_elements
+    	        .attr("x1",d=>d.source.x)
+    	        .attr("x2",d=>d.target.x)
+    	        .attr("y1",d=>d.source.y)
+    	        .attr("y2",d=>d.target.y)
+				.attr("stroke", "#ababab")
+    	}
+
+		function country_to_color(country) {
+			if (countries.has(country)) {
+				return color(country);
+			}
+			else {
+				return "#a9a9a9"
+			}
+		}
+	}
+
+	function preprocess(data) {
 		// Use a map for nodes for now. data struct conversion indexes by author id often
 		nodes = new Map();
 		links = [];
@@ -114,63 +173,8 @@
 		console.log(node_arr)
 		console.log(links)
 
-		// Generate svg elements for each node and link
-		const node_elements = svg.append("g")
-	        .attr('transform', `translate(${width / 2},${height / 2})`)
-	        .selectAll(".circle")
-	        .data(node_arr)
-	        .enter()
-	        .append("circle")
-	        .attr("r", 5)
-			// Only color the 10 most common countries
-	        .attr("fill", d=>country_to_color(d.country))
-
-		const link_elements = svg.append("g")
-        	.attr('transform',`translate(${width/2},${height/2})`)
-        	.selectAll(".line")
-        	.data(links)
-        	.enter()
-        	.append("line")
-        	.style("stroke-width", d => d.strength*1.5)
-			.style("stroke-opacity", d => d.strength*0.10);
-
-		// Run the simulation and modify those svg elements
-		const ForceSimulation = d3.forceSimulation(node_arr)
-    		.force("collide", d3.forceCollide().radius(15))
-    		.force("x", d3.forceX())
-    		.force("y", d3.forceY())
-    		.force("charge", d3.forceManyBody())
-    		.force("link", d3.forceLink(links)
-    		    .id(d=>d.index)
-    		    .distance(d=>d.strength)
-    		    .strength(d=>d.strength * .1)
-    		)
-
-    		.on("tick", ticked);
-
-    	function ticked()
-    	{
-			node_elements
-    			.attr("cx", d=> d.x)
-    	    	.attr("cy", d=> d.y)
-			link_elements
-    	        .attr("x1",d=>d.source.x)
-    	        .attr("x2",d=>d.target.x)
-    	        .attr("y1",d=>d.source.y)
-    	        .attr("y2",d=>d.target.y)
-				.attr("stroke", "#ababab")
-    	}
-
-		function country_to_color(country) {
-			if (countries.has(country)) {
-				return color(country);
-			}
-			else {
-				return "#a9a9a9"
-			}
-		}
+		return [node_arr, links, sorted_countries];
 	}
-
 	</script>
 </body>
 </html>
