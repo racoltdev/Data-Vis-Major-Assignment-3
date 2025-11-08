@@ -93,15 +93,46 @@
 
 		// Construct nodes and links
 		data.forEach( line => {
+			if (!line.Authors) return;
+			if (!line.Year) return;
 			authors = line["Author(s) ID"].split(';');
 			// Remove empty last element
 			authors.pop();
 			affiliations = line["Authors with affiliations"].split(";");
 			authors.forEach( (a, index) => {
 				// Create dictionary entry for author
-				nodes.set(a, {
-					"name": line.Authors.split(", ")[index],
-					"country": line["Authors with affiliations"].split(", ")[-1]})
+				const name = line.Authors.split(", ")[index];
+				const author_map = new Map();
+				author_map.set("name", name);
+				nodes.set(a, author_map);
+
+				// If there are any listed affiliations, figure out the country each author is associated with
+				let affiliation_found = true;
+				if (affiliations) {
+					affiliations.some( aff_list => {
+						aff_list_split = aff_list.split(", ");
+						return aff_list_split.some( aff => {
+							if (name.includes(aff)) {
+								affiliation_found = true;
+								let country = aff_list_split[aff_list_split.length - 1];
+								nodes.get(a).set("country", country);
+								if (countries.has(country)) {
+									countries.set(country, countries.get(country) + 1);
+								}
+								else {
+									countries.set(country, 1);
+								}
+								return true;
+							}
+							return false;
+						})
+					})
+				}
+
+				if (!affiliation_found) {
+					nodes.delete(a);
+					return;
+				}
 
 				// Generate links, without repeats
 				authors.forEach( s => {
@@ -126,26 +157,6 @@
 					}
 				})
 
-				// If there are any listed affiliations, figure out the country each other is associated with
-				if (affiliations) {
-					affiliations.some( aff_list => {
-						aff_list_split = aff_list.split(", ");
-						return aff_list_split.some( aff => {
-							if (nodes.get(a).name.includes(aff)) {
-								let country = aff_list_split[aff_list_split.length - 1];
-								nodes.get(a).country = country;
-								if (countries.has(country)) {
-									countries.set(country, countries.get(country) + 1);
-								}
-								else {
-									countries.set(country, 1);
-								}
-								return true;
-							}
-							return false;
-						})
-					})
-				}
 			})
 		})
 
@@ -159,7 +170,7 @@
 		// Translate nodes from dict to array so ForceSimulate works
 		let node_arr = []
 		nodes.forEach( (n, index) => {
-			node_arr.push({"name": n.name, "country": n.country});
+			node_arr.push({"name": n.get("name"), "country": n.get("country")});
 			// Update the references in links from author id indexing to positional indexing
 			links.forEach( l => {
 				if (l.source == index) {
@@ -170,7 +181,7 @@
 				}
 			})
 		})
-		console.log(node_arr)
+		console.log(nodes)
 		console.log(links)
 
 		return [node_arr, links, sorted_countries];
