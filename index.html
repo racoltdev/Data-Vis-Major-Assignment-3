@@ -88,6 +88,9 @@
 					.style("top", m.clientY + "px");
 			})
 			.on("mouseenter", function (m, d) {
+				node_elements.transition()
+					.duration(200)
+					.style("opacity", n => n["country"] == d.country ? 1 : 0.2)
 				d3.select(this)
 					.transition()
 					.duration(200)
@@ -95,8 +98,13 @@
 					.attr('stroke-width', 2)
 					.attr('stroke', "black")
 					.attr("stroke-opacity", 0.8);
+				console.log(svg.selectAll("circle"))
+
 			})
 			.on("mouseleave", function (m, d) {
+				node_elements.transition()
+					.duration(200)
+					.style("opacity", 1)
 				d3.select(this)
 					.transition()
 					.duration(200)
