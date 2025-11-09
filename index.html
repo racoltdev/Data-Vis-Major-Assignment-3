@@ -5,10 +5,25 @@
 	<title>Major Assignment 3</title>
 	<script src="https://d3js.org/d3.v7.min.js"></script>
 	<style>
+        #tooltip {
+            position: absolute;
+            opacity: 0;
+            top: 0;
+            left: 0;
+            width: auto;
+            padding: 10px;
+            background: white;
+            font-family: sans-serif;
+            font-size: medium;
+            border-radius: 2px;
+            line-height: 1;
+        }
+
 	</style>
 </head>
 
 <body>
+    <div id="tooltip"></div>
 	<div class="container">
 		<svg width="80vw" height="80vh" viewBox="0 0 1000 1500">
 		</svg>
@@ -28,6 +43,17 @@
 
 		const [node_arr, links, sorted_countries] = preprocess(data);
 
+		const tooltip = d3.select("#tooltip");
+
+		const link_elements = svg.append("g")
+        	.attr('transform',`translate(${width/2},${height/2})`)
+        	.selectAll(".line")
+        	.data(links)
+        	.enter()
+        	.append("line")
+        	.style("stroke-width", d => d.strength*1.5)
+			.style("stroke-opacity", d => d.strength*0.10);
+
 		// Generate svg elements for each node and link
 		const node_elements = svg.append("g")
 	        .attr('transform', `translate(${width / 2},${height / 2})`)
@@ -38,15 +64,6 @@
 	        .attr("r", 5)
 			// Only color the 10 most common countries
 	        .attr("fill", d=>country_to_color(d.country))
-
-		const link_elements = svg.append("g")
-        	.attr('transform',`translate(${width/2},${height/2})`)
-        	.selectAll(".line")
-        	.data(links)
-        	.enter()
-        	.append("line")
-        	.style("stroke-width", d => d.strength*1.5)
-			.style("stroke-opacity", d => d.strength*0.10);
 
 		// Run the simulation and modify those svg elements
 		const ForceSimulation = d3.forceSimulation(node_arr)
@@ -60,6 +77,40 @@
     		    .strength(d=>d.strength * .1)
     		)
     		.on("tick", ticked);
+
+		const sim_nodes = svg.selectAll("circle")
+			.on("click", (m, d) => {
+				tooltip.transition()
+					.duration(200)
+					.style("opacity", .9)
+				tooltip.html(d["name"])
+					.style("left", m.clientX + "px")
+					.style("top", m.clientY + "px");
+			})
+			.on("mouseenter", function (m, d) {
+				d3.select(this)
+					.transition()
+					.duration(200)
+					.attr("r", 8)
+					.attr('stroke-width', 2)
+					.attr('stroke', "black")
+					.attr("stroke-opacity", 0.8);
+			})
+			.on("mouseleave", function (m, d) {
+				d3.select(this)
+					.transition()
+					.duration(200)
+					.attr("r", 5)
+					.attr("stroke-width", 0)
+					.attr("stroke-opacity", 0)
+				tooltip.transition()
+					.duration(200)
+					.style("opacity", 0)
+				tooltip.html("")
+					// Move out of the way of nearby nodes
+					.style("left", "0px")
+					.style('top', "0px")
+			})
 
     	function ticked()
     	{
