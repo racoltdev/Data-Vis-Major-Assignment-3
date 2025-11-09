@@ -83,7 +83,7 @@
 				tooltip.transition()
 					.duration(200)
 					.style("opacity", .9)
-				tooltip.html(d["name"])
+				tooltip.html(`${d["name"]}<br>${d["country"]}`)
 					.style("left", m.clientX + "px")
 					.style("top", m.clientY + "px");
 			})
